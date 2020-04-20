@@ -51,7 +51,7 @@ Item 1
 
 ```
 
-First, lets understand how adding new item works, that how "AddItem" function looks in ghidra:
+First, lets understand how adding new item works, thats how "AddItem" function looks in ghidra:
 
 ```
 void AddItem(astruct *param_1)
@@ -81,7 +81,7 @@ void AddItem(astruct *param_1)
 
 ```
 
-We can see that it mallocs 32 bytes on the heap for the item description, then it reads to stack a name of the item, reads description to local variable, and then copies the 8 bytes of description to previously allocated memory on the heap. We can clearly see that using the gets functions causes stack buffer overflow, but from checksec command we deduced that stack canary is used, which doesn't allow us to just overflow funtion return address. The parameter passed to the AddItem function is a local variable in the main function, so let's take a look how these variables are actually stored. That's how the stack before returning from "AddItem" function.
+We can see that it allocates 32 bytes on the heap for the item description, then it reads to stack a name of the item, reads description to local variable, and then copies the 8 bytes of description to previously allocated memory on the heap. We can clearly see that using the gets functions causes stack buffer overflow, but from checksec command we deduced that stack canary is used, which doesn't allow us to just overflow funtion return address. The parameter passed to the AddItem function is a local variable in the main function, so let's take a look how these variables are actually stored. That's how the stack looks before returning from "AddItem" function.
 
 ```
 pwndbg> x/200xg $rsp
@@ -96,7 +96,7 @@ pwndbg> x/200xg $rsp
 0x7fffffffde30:	0x0000000000000001	0x0000000000400770
 ```
 
-My input for the name was "aaaa" and for the description "bbbb", the name landed on address 0x7fffffffdc30, which is main local variable, on address 0x7fffffffdc18 we can see address of space allocated by malloc, where is copied the description of item, which is stored at address 0x7fffffffdc00, address 0x7fffffffde30 stores number of items which is increased by one in every time the function is called. We can establish from this that a single item is struct looking something like this:
+My input for the name was "aaaa" and for the description "bbbb", the name landed on address 0x7fffffffdc30, which is main local variable, on address 0x7fffffffdc38 we can see address of space allocated by malloc, where is copied the description of item, which is stored at address 0x7fffffffdc00, address 0x7fffffffde30 stores number of items which is increased by one every time the function is called. We can establish from this that a single item is a struct looking something like this:
 
 ```
 struct Item {
@@ -143,7 +143,7 @@ r.close()
 
 ```
 
-The variable that stores the number of items is overwritten by 1, and the it is incremented by one by "AddItem" function and then the description supplied by gets is written to 0x602010 and the 0x602020 is not changed.
+The variable that stores the number of items is overwritten by 1, it is incremented by one by "AddItem" function and then the description supplied by gets is written to 0x602010 and the 0x602020 is not changed.
 
 
 To identify which libc is running I used https://libc.nullbyte.cat/
